@@ -17,6 +17,7 @@ export function HomePage() {
   const [stories, setStories] = useState<Story[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [storyBusy, setStoryBusy] = useState(false)
   const [viewer, setViewer] = useState<{ group: StoryGroup; index: number } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -45,13 +46,22 @@ export function HomePage() {
   }, [load])
 
   async function onStoryFile(file: File | undefined) {
-    if (!file || !profile) return
+    if (!file || !profile || storyBusy) return
+    setStoryBusy(true)
+    setError('')
     try {
       await createStory(profile, file)
       const active = await fetchActiveStories()
       setStories(active)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Story upload failed')
+      const msg = err instanceof Error ? err.message : 'Story upload failed'
+      const hint = /storage|bucket|object-not-found|retry-limit|unauthorized|permission/i.test(msg)
+        ? ' Enable Firebase Storage for project csg-celebrate (Console → Storage → Get started), then try again.'
+        : ''
+      setError(msg + hint)
+    } finally {
+      setStoryBusy(false)
+      if (fileRef.current) fileRef.current.value = ''
     }
   }
 
@@ -76,9 +86,13 @@ export function HomePage() {
 
       <StoryTray
         stories={stories}
-        onAdd={() => fileRef.current?.click()}
+        onAdd={() => {
+          if (storyBusy) return
+          fileRef.current?.click()
+        }}
         onOpen={(group, index) => setViewer({ group, index })}
       />
+      {storyBusy && <p className="muted">Uploading story…</p>}
 
       {error && <div className="error-banner">{error}</div>}
       {loading && <div className="loading">Loading celebrations…</div>}

@@ -364,7 +364,8 @@ export async function getFollowingIds(uid: string): Promise<string[]> {
 export async function createStory(author: UserProfile, file: File): Promise<string> {
   const storyRef = doc(collection(db, 'stories'))
   const blob = await compressImage(file, 1080, 0.8)
-  const storageRef = ref(storage, `stories/${author.uid}/${storyRef.id}.jpg`)
+  // Path must match storage.rules: stories/{uid}/{storyId}/{fileName}
+  const storageRef = ref(storage, `stories/${author.uid}/${storyRef.id}/media.jpg`)
   await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' })
   const mediaUrl = await getDownloadURL(storageRef)
   const now = Date.now()
