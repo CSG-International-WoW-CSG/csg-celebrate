@@ -1,57 +1,43 @@
-# CSG Celebrate — one-time Firebase + Pages checklist
+# CSG Celebrate — setup status
 
 **Repo:** https://github.com/CSG-International-WoW-CSG/csg-celebrate  
-**Expected live URL:** https://csg-international-wow-csg.github.io/csg-celebrate/
+**Live URL:** https://csg-international-wow-csg.github.io/csg-celebrate/  
+**Firebase:** https://console.firebase.google.com/project/csg-celebrate/overview
 
-## Done already
-- App code pushed to `main`
-- `firebase.json` / rules / indexes in repo
-- Pages workflow file ready locally at `.github/workflows/deploy-pages.yml` (needs one more push after `workflow` scope)
+## Done
+- Firebase project `csg-celebrate` created (separate from `wow-csg`)
+- Web app registered; `.env.local` written locally (gitignored)
+- Firestore database created (`asia-south1`)
+- Firestore rules + indexes deployed
+- GitHub repo + Pages workflow + Action secrets configured
 
-## Your steps
+## You must click once in Console (Auth + Storage)
 
-### A) Firebase (required before login/posts work)
+Firebase Auth and Storage need a first-time enable in the browser:
 
-1. Open https://console.firebase.google.com/ → **Add project** → `csg-celebrate`  
-   - Do **not** reuse `wow-csg`
-2. Enable **Authentication → Email/Password**
-3. Create **Firestore** (start in production mode)
-4. Enable **Storage**
-5. Project settings → Your apps → **Web** → copy config into `.env.local` (from `.env.example`)
-6. Prefer upgrade to **Blaze** before company traffic
-7. From `csg-celebrate/`:
+1. **Auth — Email/Password**  
+   https://console.firebase.google.com/project/csg-celebrate/authentication/providers  
+   → Get started → enable **Email/Password** → Save
 
-```bash
-npx firebase-tools login
-npx firebase-tools use csg-celebrate
-npx firebase-tools deploy --only firestore,storage
-```
-
-### B) GitHub Pages + secrets
-
-1. Grant workflow scope (one-time):
+2. **Storage**  
+   https://console.firebase.google.com/project/csg-celebrate/storage  
+   → Get started → use default bucket → Done  
+   Then from `csg-celebrate/`:
 
 ```bash
-gh auth refresh -h github.com -s workflow,repo,read:org
+npm run deploy:rules
 ```
 
-2. Commit and push the workflow:
+(That deploys Storage rules after the bucket exists.)
+
+3. Optional but recommended: upgrade project to **Blaze** before company-wide use.
+
+## Local run
 
 ```bash
 cd csg-celebrate
-git add .github/workflows/deploy-pages.yml
-git commit -m "Add GitHub Pages deploy workflow"
-git push
+npm install
+npm run dev
 ```
 
-3. Repo **Settings → Pages → Source: GitHub Actions**
-
-4. **Settings → Secrets and variables → Actions** — add:
-   - `VITE_FIREBASE_API_KEY`
-   - `VITE_FIREBASE_AUTH_DOMAIN`
-   - `VITE_FIREBASE_PROJECT_ID`
-   - `VITE_FIREBASE_STORAGE_BUCKET`
-   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
-   - `VITE_FIREBASE_APP_ID`
-
-5. Re-run the **Deploy CSG Celebrate to GitHub Pages** workflow (or push again)
+`.env.local` is already filled if you used this machine’s setup.
