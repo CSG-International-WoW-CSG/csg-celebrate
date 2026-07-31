@@ -1,0 +1,47 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isCorpEmail() {
+      return signedIn()
+        && request.auth.token.email.matches('.*@(csgi|csg)\\.com$');
+    }
+
+    match /avatars/{uid}/{fileName} {
+      allow read: if isCorpEmail();
+      allow write: if isCorpEmail()
+        && request.auth.uid == uid
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /posts/{uid}/{postId}/{fileName} {
+      allow read: if isCorpEmail();
+      allow write: if isCorpEmail()
+        && request.auth.uid == uid
+        && request.resource.size < 40 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType.matches('video/.*')
+        );
+    }
+
+    match /stories/{uid}/{storyId}/{fileName} {
+      allow read: if isCorpEmail();
+      allow write: if isCorpEmail()
+        && request.auth.uid == uid
+        && request.resource.size < 15 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /messages/{uid}/{fileName} {
+      allow read: if isCorpEmail();
+      allow write: if isCorpEmail()
+        && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024;
+    }
+  }
+}
