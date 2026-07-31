@@ -47,13 +47,6 @@
         { "fieldPath": "conversationId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "follows",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "followerId", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": []
