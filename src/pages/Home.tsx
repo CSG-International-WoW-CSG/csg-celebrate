@@ -26,12 +26,13 @@ export function HomePage() {
     setError('')
     try {
       const following = await getFollowingIds(profile.uid)
-      const [feed, activeStories] = await Promise.all([
-        fetchFollowingFeed(following),
-        fetchActiveStories(),
-      ])
+      const feed = await fetchFollowingFeed(following)
       setPosts(feed)
-      setStories(activeStories)
+      try {
+        setStories(await fetchActiveStories())
+      } catch {
+        setStories([])
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load feed')
     } finally {

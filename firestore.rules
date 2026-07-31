@@ -9,8 +9,8 @@ service cloud.firestore {
       return signedIn()
         && request.auth.token.email is string
         && (
-          request.auth.token.email.matches('.*@csgi\\.com$')
-          || request.auth.token.email.matches('.*@csg\\.com$')
+          request.auth.token.email.matches('(?i).*@csgi\\.com$')
+          || request.auth.token.email.matches('(?i).*@csg\\.com$')
         );
     }
 
@@ -64,8 +64,9 @@ service cloud.firestore {
     }
 
     match /stories/{storyId} {
-      allow read: if isCorpEmail()
-        && resource.data.expiresAt > request.time;
+      // Expiry is enforced client-side; do not gate list queries on expiresAt
+      // (Firestore denies queries when rules filter fields not present in the query).
+      allow read: if isCorpEmail();
       allow create: if isCorpEmail()
         && request.resource.data.authorId == request.auth.uid;
       allow delete: if isCorpEmail()
