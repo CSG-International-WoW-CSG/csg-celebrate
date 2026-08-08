@@ -12,6 +12,7 @@ export function CreatePage() {
   const [previews, setPreviews] = useState<string[]>([])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [status, setStatus] = useState('')
 
   function onFiles(list: FileList | null) {
     if (!list) return
@@ -29,15 +30,22 @@ export function CreatePage() {
     }
     setBusy(true)
     setError('')
+    setStatus('Preparing…')
     try {
       for (const f of files) {
         if (f.type.startsWith('video/')) await validateVideo(f, 60)
       }
-      const id = await createPost({ author: profile, caption, files })
+      const id = await createPost({
+        author: profile,
+        caption,
+        files,
+        onProgress: setStatus,
+      })
       await refreshProfile()
       navigate(`/app/post/${id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed')
+      setStatus('')
     } finally {
       setBusy(false)
     }
@@ -85,8 +93,13 @@ export function CreatePage() {
             maxLength={2200}
           />
         </div>
+        {busy && status && (
+          <p className="muted" style={{ marginTop: '0.75rem' }}>
+            {status}
+          </p>
+        )}
         <button className="btn btn-primary" type="submit" disabled={busy} style={{ width: '100%' }}>
-          {busy ? 'Sharing…' : 'Share'}
+          {busy ? status || 'Sharing…' : 'Share'}
         </button>
       </form>
     </div>

@@ -17,6 +17,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { FirebaseError } from 'firebase/app'
 import { db, storage } from './firebase'
 import { compressImage } from './media'
 import {
@@ -30,6 +31,76 @@ import {
   type Story,
   type UserProfile,
 } from './types'
+
+const UPLOAD_TIMEOUT_MS = 45_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `${label} timed out after ${Math.round(ms / 1000)}s. Check Firebase Storage is enabled for project csg-celebrate.`,
+          ),
+        ),
+      ms,
+    )
+    promise.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (err) => {
+        clearTimeout(timer)
+        reject(err)
+      },
+    )
+  })
+}
+
+/** Map Storage failures to actionable messages (common: Storage not enabled / wrong bucket). */
+export function formatStorageError(err: unknown): string {
+  const code = err instanceof FirebaseError ? err.code : ''
+  const raw = err instanceof Error ? err.message : String(err || 'Upload failed')
+  const lower = `${code} ${raw}`.toLowerCase()
+
+  if (
+    /storage\/unknown|storage\/retry-limit-exceeded|503|server unavailable|bucket|object-not-found|timed out/i.test(
+      lower,
+    )
+  ) {
+    return (
+      'Photo upload failed: Firebase Storage is not ready for csg-celebrate. ' +
+      'Open Console → Storage → Get started, confirm the bucket is csg-celebrate.firebasestorage.app, ' +
+      'then run npm run deploy:rules. Blaze plan may be required for uploads.'
+    )
+  }
+  if (/storage\/unauthorized|permission-denied|403/i.test(lower)) {
+    return (
+      'Upload blocked by Storage rules. Sign in with @csgi.com / @csg.com, ' +
+      'then redeploy storage.rules (npm run deploy:rules).'
+    )
+  }
+  if (/storage\/canceled/i.test(lower)) {
+    return 'Upload was canceled. Please try again.'
+  }
+  return raw
+}
+
+async function uploadBlob(
+  path: string,
+  data: Blob | File,
+  contentType: string,
+  label = 'Upload',
+): Promise<string> {
+  const storageRef = ref(storage, path)
+  await withTimeout(
+    uploadBytes(storageRef, data, { contentType }),
+    UPLOAD_TIMEOUT_MS,
+    label,
+  )
+  return withTimeout(getDownloadURL(storageRef), 15_000, `${label} URL`)
+}
 
 function mapUser(id: string, data: DocumentData): UserProfile {
   return {
@@ -111,36 +182,46 @@ export async function updateUserProfile(
 }
 
 export async function uploadAvatar(uid: string, file: File): Promise<string> {
-  const blob = await compressImage(file, 512, 0.85)
-  const storageRef = ref(storage, `avatars/${uid}/${Date.now()}.jpg`)
-  await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' })
-  return getDownloadURL(storageRef)
+  try {
+    const blob = await compressImage(file, 512, 0.85)
+    return await uploadBlob(`avatars/${uid}/${Date.now()}.jpg`, blob, 'image/jpeg', 'Avatar upload')
+  } catch (err) {
+    throw new Error(formatStorageError(err))
+  }
 }
 
 export async function createPost(params: {
   author: UserProfile
   caption: string
   files: File[]
+  onProgress?: (message: string) => void
 }): Promise<string> {
   const postRef = doc(collection(db, 'posts'))
   const media: MediaItem[] = []
   let isVideo = false
+  const total = Math.min(params.files.length, 10)
 
-  for (let i = 0; i < Math.min(params.files.length, 10); i++) {
+  try {
+  for (let i = 0; i < total; i++) {
     const file = params.files[i]
     const isVid = file.type.startsWith('video/')
     isVideo = isVideo || isVid
-    const path = `posts/${params.author.uid}/${postRef.id}/${i}-${Date.now()}`
-    const storageRef = ref(storage, path)
+    const path = `posts/${params.author.uid}/${postRef.id}/${i}-${Date.now()}${isVid ? '' : '.jpg'}`
+    params.onProgress?.(`Uploading ${i + 1} of ${total}…`)
     if (isVid) {
-      await uploadBytes(storageRef, file, { contentType: file.type })
-      media.push({ url: await getDownloadURL(storageRef), type: 'video' })
+      const url = await uploadBlob(path, file, file.type || 'video/mp4', `Video ${i + 1}`)
+      media.push({ url, type: 'video' })
     } else {
       const blob = await compressImage(file)
-      await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' })
-      media.push({ url: await getDownloadURL(storageRef), type: 'image' })
+      const url = await uploadBlob(path, blob, 'image/jpeg', `Photo ${i + 1}`)
+      media.push({ url, type: 'image' })
     }
   }
+  } catch (err) {
+    throw new Error(formatStorageError(err))
+  }
+
+  params.onProgress?.('Saving post…')
 
   const hashtags = extractHashtags(params.caption)
   const now = Date.now()
@@ -363,11 +444,19 @@ export async function getFollowingIds(uid: string): Promise<string[]> {
 
 export async function createStory(author: UserProfile, file: File): Promise<string> {
   const storyRef = doc(collection(db, 'stories'))
-  const blob = await compressImage(file, 1080, 0.8)
-  // Path must match storage.rules: stories/{uid}/{storyId}/{fileName}
-  const storageRef = ref(storage, `stories/${author.uid}/${storyRef.id}/media.jpg`)
-  await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' })
-  const mediaUrl = await getDownloadURL(storageRef)
+  let mediaUrl: string
+  try {
+    const blob = await compressImage(file, 1080, 0.8)
+    // Path must match storage.rules: stories/{uid}/{storyId}/{fileName}
+    mediaUrl = await uploadBlob(
+      `stories/${author.uid}/${storyRef.id}/media.jpg`,
+      blob,
+      'image/jpeg',
+      'Story upload',
+    )
+  } catch (err) {
+    throw new Error(formatStorageError(err))
+  }
   const now = Date.now()
   const expiresAt = now + 24 * 60 * 60 * 1000
   await setDoc(storyRef, {
@@ -592,15 +681,20 @@ export async function sendMessage(params: {
 }): Promise<void> {
   let mediaUrl: string | undefined
   if (params.file) {
-    const blob = params.file.type.startsWith('image/')
-      ? await compressImage(params.file, 1200, 0.8)
-      : params.file
-    const storageRef = ref(
-      storage,
-      `messages/${params.sender.uid}/${Date.now()}-${params.file.name}`,
-    )
-    await uploadBytes(storageRef, blob, { contentType: params.file.type })
-    mediaUrl = await getDownloadURL(storageRef)
+    try {
+      const blob = params.file.type.startsWith('image/')
+        ? await compressImage(params.file, 1200, 0.8)
+        : params.file
+      const safeName = params.file.name.replace(/[^\w.\-]+/g, '_') || 'file'
+      mediaUrl = await uploadBlob(
+        `messages/${params.sender.uid}/${Date.now()}-${safeName}`,
+        blob,
+        params.file.type || 'application/octet-stream',
+        'Message media upload',
+      )
+    } catch (err) {
+      throw new Error(formatStorageError(err))
+    }
   }
 
   await addDoc(collection(db, 'messages'), {

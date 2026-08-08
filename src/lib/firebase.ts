@@ -7,7 +7,9 @@ const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'REPLACE_ME',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'csg-celebrate.firebaseapp.com',
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'csg-celebrate',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'csg-celebrate.appspot.com',
+  // Newer Firebase projects use *.firebasestorage.app (not *.appspot.com).
+  storageBucket:
+    import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'csg-celebrate.firebasestorage.app',
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '000000000000',
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:000000000000:web:replace',
 }

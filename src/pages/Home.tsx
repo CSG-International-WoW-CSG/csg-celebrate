@@ -54,11 +54,7 @@ export function HomePage() {
       const active = await fetchActiveStories()
       setStories(active)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Story upload failed'
-      const hint = /storage|bucket|object-not-found|retry-limit|unauthorized|permission/i.test(msg)
-        ? ' Enable Firebase Storage for project csg-celebrate (Console → Storage → Get started), then try again.'
-        : ''
-      setError(msg + hint)
+      setError(err instanceof Error ? err.message : 'Story upload failed')
     } finally {
       setStoryBusy(false)
       if (fileRef.current) fileRef.current.value = ''

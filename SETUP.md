@@ -19,9 +19,9 @@ Firebase Auth and Storage need a first-time enable in the browser:
    https://console.firebase.google.com/project/csg-celebrate/authentication/providers  
    → Get started → enable **Email/Password** → Save
 
-2. **Storage**  
+2. **Storage** (required for Share + Stories — without this, UI sticks on “Sharing…”)  
    https://console.firebase.google.com/project/csg-celebrate/storage  
-   → Get started → use default bucket → Done  
+   → Get started → use default bucket (`csg-celebrate.firebasestorage.app`) → Done  
    Then from `csg-celebrate/`:
 
 ```bash
@@ -30,7 +30,9 @@ npm run deploy:rules
 
 (That deploys Storage rules after the bucket exists.)
 
-3. Optional but recommended: upgrade project to **Blaze** before company-wide use.
+3. **Blaze plan** is often required for Storage uploads from the web app.  
+   https://console.firebase.google.com/project/csg-celebrate/usage/details  
+   → Modify plan → Blaze (pay-as-you-go; free Spark quotas still apply until exceeded).
 
 ## Local run
 
