@@ -69,7 +69,7 @@ export function HomePage() {
     <div className="page">
       <div className="top-bar">
         <h1 className="brand-mark">
-          CSG <span className="accent">Celebrate</span>
+          WoW-CSG <span className="accent">Celebrate</span>
         </h1>
         <Link to="/app/messages" className="btn btn-ghost">
           Messages

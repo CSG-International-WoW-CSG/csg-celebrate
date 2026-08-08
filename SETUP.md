@@ -1,4 +1,4 @@
-# CSG Celebrate — setup status
+# WoW-CSG Celebrate — setup status
 
 **Repo:** https://github.com/CSG-International-WoW-CSG/csg-celebrate  
 **Live URL:** https://csg-international-wow-csg.github.io/csg-celebrate/  

@@ -31,9 +31,9 @@ export function RegisterPage() {
     <div className="app-shell auth-only">
       <div className="auth-page">
         <h1 className="brand-mark">
-          Join <span className="accent">Celebrate</span>
+          Join <span className="accent">WoW-CSG Celebrate</span>
         </h1>
-        <p className="sub">CSG teammates only — use your work email.</p>
+        <p className="sub">WoW-CSG teammates only — use your work email.</p>
         {error && <div className="error-banner">{error}</div>}
         <form onSubmit={onSubmit}>
           <div className="field">

@@ -1,4 +1,4 @@
-name: Deploy CSG Celebrate to GitHub Pages
+name: Deploy WoW-CSG Celebrate to GitHub Pages
 
 on:
   push:

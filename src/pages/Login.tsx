@@ -30,7 +30,7 @@ export function LoginPage() {
     <div className="app-shell auth-only">
       <div className="auth-page">
         <h1 className="brand-mark">
-          CSG <span className="accent">Celebrate</span>
+          WoW-CSG <span className="accent">Celebrate</span>
         </h1>
         <p className="sub">Corporate email only (@csgi.com / @csg.com)</p>
         {error && <div className="error-banner">{error}</div>}

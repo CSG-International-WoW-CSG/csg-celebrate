@@ -1,4 +1,4 @@
-# CSG Celebrate
+# WoW-CSG Celebrate
 
 Instagram-style internal social for CSG employees — celebrations, wins, events, and culture.
 
